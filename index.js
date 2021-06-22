@@ -5,18 +5,18 @@ if (process.argv.length == 5) {
     main()
 }
 
-function main() {
+async function main() {
     var message
     var recipients
     var sender = process.argv[4]
     try {
-        message = fs.readFileSync(process.argv[2], 'utf-8')
+        message = fs.readFileSync(process.argv[2], 'utf-8').trim()
         recipients = fs.readFileSync(process.argv[3], 'utf-8')
                            .replace(/\s/g,'')
                            .split(',')
     } catch (error) {
         console.log(error)
-        return 
+        return
     }
 
     var start = new Date()
@@ -30,21 +30,30 @@ function main() {
 
     var client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
 
-    recipients.forEach(recipient => {
+    for(var recipient of recipients) {
         if (recipient === '') {
-            return
+            continue;
         }
-        client.messages.create({
-                body: message,
-                from: sender,
-                to: recipient
-            }).catch(error => {
-                console.log(error)
-            });
-    })
+
+        await send(client, recipient, message, sender)
+    }
 
     var end = new Date()
     console.log(`Send end ${end}`)
     console.log(`Time to finish: ${end - start} ms`)
+}
+
+async function send(client, recipient, message, sender) {
+    try {
+        var success = await client.messages.create({
+            body: message,
+            from: sender,
+            to: recipient
+        })
+        console.log(`Success ${recipient}`)
+    } catch (error) {
+        console.log(`Unable to send to ${recipient}: ${JSON.stringify(error)}`)
+        console.log(error)
+    }
 }
 
