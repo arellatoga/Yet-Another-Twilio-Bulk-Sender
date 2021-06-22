@@ -1,0 +1,19 @@
+{
+  "name": "yatbs",
+  "version": "1.0.0",
+  "description": "Yet Another Twilio Bulk Sender",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "twilio",
+    "bulk",
+    "sender"
+  ],
+  "author": "arellatoga",
+  "license": "ISC",
+  "dependencies": {
+    "twilio": "^3.64.0"
+  }
+}
