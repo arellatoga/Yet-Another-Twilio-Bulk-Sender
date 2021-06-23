@@ -8,7 +8,7 @@ if (process.argv.length == 5) {
 async function main() {
     var message
     var recipients
-    var sender = process.argv[4]
+    var senderSid = process.argv[4]
     try {
         message = fs.readFileSync(process.argv[2], 'utf-8').trim()
         recipients = fs.readFileSync(process.argv[3], 'utf-8')
@@ -21,21 +21,30 @@ async function main() {
 
     var start = new Date()
 
+    var client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+    var service = client.notify.services(process.env.TWILIO_NOTIFY_SERVICE_SID)
+
+    var numberChunks = []
+    var chunkSize = 2
+
+    for (var i = 0; i < recipients.length; i += chunkSize) {
+        var chunk = recipients.slice(i, i + chunkSize)
+        numberChunks.push(chunk)
+    }
+
     console.log(`Send start ${start}`)
     console.log("---")
     console.log(`Message: ${message}`)
     console.log("---")
-    console.log(`Approximate recipient count: ${recipients.length}`)
+    console.log(`Chunk count (number of requests): ${numberChunks.length} `)
     console.log("---")
 
-    var client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+    for (var numberChunk of numberChunks) {
+        const bindings = numberChunk.map(number => {
+            return JSON.stringify({ binding_type: 'sms', address: number})
+        })
 
-    for(var recipient of recipients) {
-        if (recipient === '') {
-            continue;
-        }
-
-        await send(client, recipient, message, sender)
+        await send(service, bindings, message)
     }
 
     var end = new Date()
@@ -43,17 +52,13 @@ async function main() {
     console.log(`Time to finish: ${end - start} ms`)
 }
 
-async function send(client, recipient, message, sender) {
+async function send(service, bindings, message) {
     try {
-        var success = await client.messages.create({
-            body: message,
-            from: sender,
-            to: recipient
+        await service.notifications.create({
+            toBinding: bindings,
+            body: message
         })
-        console.log(`Success ${recipient}`)
     } catch (error) {
-        console.log(`Unable to send to ${recipient}: ${JSON.stringify(error)}`)
         console.log(error)
     }
 }
-
